@@ -14,9 +14,9 @@
 
 
 #define hallSensor          2
-#define RED                 9
-#define GREEN               10
-#define BLUE                11
+#define RED                 3
+#define GREEN               5
+#define BLUE                6
 
 struct LED
 {
@@ -38,9 +38,13 @@ LED segment[256] = {0};
 volatile uint16_t revTime = 0;
 volatile uint16_t lastRev = micros();
 
+volatile uint16_t segTime = 0;
+
 
 void setup() {
   esc.attach(9);  // attaches the servo on pin 9 to the servo object
+
+  Timer1.initialize();
 
   //http://fluuux.de/2013/04/interrupts-mit-arduino-benutzen/
   attachInterrupt(digitalPinToInterrupt(hallSensor), hallISR, FALLING);
@@ -48,6 +52,8 @@ void setup() {
 
 void loop() {
   escCalibration();
+
+  
 
   
 }
@@ -72,4 +78,7 @@ void escCalibration() {
 void hallISR() {
   revTime = micros() - lastRev;
   lastRev = micros();
+  segTime = (int) revTime / 256.0f;
+
+  Timer1.setPeriod(segTime);  
 }
