@@ -1,39 +1,49 @@
-// Main HDD POV Clock arduino code
+/****************************************************************
+ * 
+ * Hard drive disk (HDD) Persistence-of-Vision (POV) Clock 
+ * 
+ * Marco Wagner
+ * April 2016
+ * 
+******************************************************************/
 
-#include <Servo.h>            // Library to output 1-2ms pulses @ 50Hz
-#include <avr/io.h>         // Definition of interrupt names
-#include <avr/interrupt.h>  // ISR interrupt service routine
+#include <Servo.h>           // Library to output 1-2ms pulses @ 50Hz
+#include <avr/io.h>          // Definition of interrupt names
+#include <avr/interrupt.h>   // ISR interrupt service routine
+#include <TimerOne.h>        // Arduino Timer 1 library
 
-// CURRENT STATUS: Only testing of single elements later needed
 
-// CURRENTLY BEING TESTED: ESC control for HDD BLDC-motor!!
+#define hallSensor          2
+#define RED                 9
+#define GREEN               10
+#define BLUE                11
+
+struct LED
+{
+  bool red : 1;
+  bool green : 1;
+  bool blue : 1;  
+};
 
 Servo esc;  // create servo object to control a servo
 
-// This is the INT0 Pin of the ATMega8
-int hallSensor = 2;
-// INT data exchange variables
+
+//############################
+//####### Variables ##########
+//############################
+
+LED segment[256] = {0}; 
+
+// Global, interrupt accessible variables
 volatile uint16_t revTime = 0;
 volatile uint16_t lastRev = micros();
 
-// Install the interrupt routine.
-//ISR(INT0_vect) {
-//revTime = micros();
-//}
 
 void setup() {
   esc.attach(9);  // attaches the servo on pin 9 to the servo object
 
-  // https://gonium.net/md/2006/12/20/handling-external-interrupts-with-arduino/
-  //pinMode(hallSensor, INPUT);
-  // Global Enable INT0 interrupt
-  //GICR |= ( 1 < < INT0);
-  // Signal change triggers interrupt
-  //MCUCR |= ( 1 << ISC00);
-  //MCUCR |= ( 0 << ISC01);
-
   //http://fluuux.de/2013/04/interrupts-mit-arduino-benutzen/
-  attachInterrupt(0, hallISR, FALLING);
+  attachInterrupt(digitalPinToInterrupt(hallSensor), hallISR, FALLING);
 }
 
 void loop() {
