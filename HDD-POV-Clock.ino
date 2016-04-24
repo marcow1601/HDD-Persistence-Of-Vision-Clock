@@ -7,10 +7,10 @@
  * 
 ******************************************************************/
 
-#include <Servo.h>           // Library to output 1-2ms pulses @ 50Hz
-#include <avr/io.h>          // Definition of interrupt names
-#include <avr/interrupt.h>   // ISR interrupt service routine
-#include <TimerOne.h>        // Arduino Timer 1 library
+#include <Servo.h>          // Library to output 1-2ms pulses @ 50Hz
+#include <avr/io.h>         // Definition of interrupt names
+#include <avr/interrupt.h>  // ISR interrupt service routine
+#include <TimerOne.h>       // Timer based interrupt events
 
 #define PIN_R       3
 #define PIN_G       5
@@ -110,6 +110,7 @@ void hallISR() {
 
   Timer1.setPeriod(segTime);
 }
+
 
 void blinken() {
   digitalWrite(pin, digitalRead(pin)^1);
