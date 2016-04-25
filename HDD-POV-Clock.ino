@@ -12,7 +12,7 @@
 #include <avr/interrupt.h>  // ISR interrupt service routine
 #include <TimerOne.h>       // Timer based interrupt events
 
-#include "DS3231/DS3231.h" // http://www.rinkydinkelectronics.com/library.php?id=73
+#include "libraries/DS3231/DS3231.h" // http://www.rinkydinkelectronics.com/library.php?id=73
 
 
 #define PIN_R       3
