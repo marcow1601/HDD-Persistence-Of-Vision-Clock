@@ -44,13 +44,11 @@ LED segment[256] = {0};
 volatile uint16_t revTime = 0;
 volatile uint16_t lastRev = micros();
 volatile uint16_t segTime = 0;
+volatile uint8_t currentSegment = 0;
 
 uint8_t hour = 0;
 uint8_t minute = 0;
 uint8_t second = 0;
-
-uint8_t pin = PIN_R;
-
 
 void setup()
 {
@@ -67,8 +65,8 @@ void setup()
   esc.attach(9);  // Attaches the servo on pin 9 to the servo object
   rtc.begin();    // Initialize the rtc object
 
-  Timer1.initialize(4190);
-  Timer1.attachInterrupt(blinken);
+  Timer1.initialize();
+  Timer1.attachInterrupt(draw);
 
   attachInterrupt(digitalPinToInterrupt(PIN_HALL), hallISR, FALLING);
 
@@ -121,9 +119,11 @@ void hallISR()
 }
 
 
-void blinken()
+void draw()
 {
-  digitalWrite(pin, digitalRead(pin)^1);
+  digitalWrite(PIN_R, segment[currentSegment].red);
+  digitalWrite(PIN_G, segment[currentSegment].green);
+  digitalWrite(PIN_B, segment[currentSegment].blue);
 }
 
 void updateTime()
