@@ -3,7 +3,7 @@
  * Hard drive disk (HDD) Persistence-of-Vision (POV) Clock 
  * 
  * Marco Wagner
- * April 2016
+ * May/April 2016
  * 
 ******************************************************************/
 
@@ -46,10 +46,6 @@ volatile uint16_t lastRev = micros();
 volatile uint16_t segTime = 0;
 volatile uint8_t currentSegment = 0;
 
-uint8_t hour = 0;
-uint8_t minute = 0;
-uint8_t second = 0;
-
 void setup()
 {
   pinMode(PIN_HALL, INPUT);
@@ -83,11 +79,8 @@ void loop()
   runEvery(1000)
   {
     Time now = rtc.getTime();
-    //hour = hour from "Time now"
-    //minute = minute from "Time now"
-    //second = second from "Time now"
 
-    fillSegments();
+    fillSegments(now);
   }
 }
 
@@ -131,11 +124,24 @@ void updateTime()
   
 }
 
-void fillSegments()
+void fillSegments(Time time)
 {
+  /*
+   * Calculation of clock hand positions
+   * Hour:    0-24       (Hour hand completes run twice a day)
+   *          1 hour = 21.33 segments
+   * Minute: 0-60
+   * Second: 0-60
+   */
+  // Current position of clock hands across the 256 segments
+  uint8_t secHand = (uint8_t)((((uint16_t) time.sec)*256)/60.0f+0.5f);          // Always round to the nearest whole segment number
+  uint8_t minHand = (uint8_t)((((uint16_t) time.min)*256)/60.0f+0.5f);
+  uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour % 12)+(time.min/60.0f))*256)/12.0f+0.5f);       // Hour hand moves slowly with progressing minute count in current hour
+  
+  
   for(uint8_t i = 0; i<256; i++)
   {
-    if((int)((hour/12.0f)*256.0f) == i){
+    if(hourHand == i){
       segment[i].red = 1;
       segment[i].green = 0;
       segment[i].blue = 0;
@@ -148,7 +154,7 @@ void fillSegments()
       segment[(i==255)?0:(i+1)].green = 0;
       segment[(i==255)?0:(i+1)].blue = 0;
     }
-    else if((int)((minute/60.0f)*256.0f) == i){
+    else if(minHand == i){
       segment[i].red = 0;
       segment[i].green = 0;
       segment[i].blue = 1;
@@ -161,7 +167,7 @@ void fillSegments()
       segment[(i==255)?0:(i+1)].green = 0;
       segment[(i==255)?0:(i+1)].blue = 1;
     }
-    else if((int)((second/60.0f)*256.0f) == i){
+    else if(secHand == i){
       segment[i].red = 0;
       segment[i].green = 1;
       segment[i].blue = 0;
