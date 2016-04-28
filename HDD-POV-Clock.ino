@@ -20,6 +20,8 @@
 #define PIN_B       6
 #define PIN_HALL    2       // This is the INT0 Pin of the ATMega8
 
+#define DIVISIONS   256.0f     // Number of segments the clock face is divided into
+
 #define runEvery(t) for (static uint16_t _lasttime;\
                          (uint16_t)((uint16_t)millis() - _lasttime) >= (t);\
                          _lasttime += (t))
@@ -38,13 +40,13 @@ DS3231  rtc(SDA, SCL); // create DS3231 RTC object
 //####### Variables ##########
 //############################
 
-LED segment[256] = {0};
+LED segment[(int)DIVISIONS] = {0};
 
 // Global, interrupt accessible variables
 volatile uint16_t revTime = 0;
 volatile uint16_t lastRev = micros();
 volatile uint16_t segTime = 0;
-volatile uint8_t currentSegment = 0;
+volatile uint16_t currentSegment = 0;
 
 void setup()
 {
@@ -106,7 +108,7 @@ void hallISR()
 {
   revTime = micros() - lastRev;
   lastRev = micros();
-  segTime = (int) revTime / 256.0f;
+  segTime = (int) revTime / DIVISIONS;
 
   Timer1.setPeriod(segTime);
 }
@@ -129,69 +131,68 @@ void fillSegments(Time time)
   /*
    * Calculation of clock hand positions
    * Hour:    0-24       (Hour hand completes run twice a day)
-   *          1 hour = 21.33 segments
    * Minute: 0-60
    * Second: 0-60
    */
   // Current position of clock hands across the 256 segments
-  uint8_t secHand = (uint8_t)((((uint16_t) time.sec)*256)/60.0f+0.5f);          // Always round to the nearest whole segment number
-  uint8_t minHand = (uint8_t)((((uint16_t) time.min)*256)/60.0f+0.5f);
-  uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour % 12)+(time.min/60.0f))*256)/12.0f+0.5f);       // Hour hand moves slowly with progressing minute count in current hour
+  uint8_t secHand = (uint8_t)((((uint16_t) time.sec)*DIVISIONS)/60.0f+0.5f);          // Always round to the nearest whole segment number
+  uint8_t minHand = (uint8_t)((((uint16_t) time.min)*DIVISIONS)/60.0f+0.5f);
+  uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour % 12)+(time.min/60.0f))*DIVISIONS)/12.0f+0.5f);       // Hour hand moves slowly with progressing minute count in current hour
   
   
-  for(uint8_t i = 0; i<256; i++)
+  for(uint8_t i = 0; i<DIVISIONS; i++)
   {
     if(hourHand == i){
       segment[i].red = 1;
       segment[i].green = 0;
       segment[i].blue = 0;
 
-      segment[(i==0)?255:(i-1)].red = 1;
-      segment[(i==0)?255:(i-1)].green = 0;
-      segment[(i==0)?255:(i-1)].blue = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
 
-      segment[(i==255)?0:(i+1)].red = 1;
-      segment[(i==255)?0:(i+1)].green = 0;
-      segment[(i==255)?0:(i+1)].blue = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
     }
     else if(minHand == i){
       segment[i].red = 0;
       segment[i].green = 0;
       segment[i].blue = 1;
 
-      segment[(i==0)?255:(i-1)].red = 0;
-      segment[(i==0)?255:(i-1)].green = 0;
-      segment[(i==0)?255:(i-1)].blue = 1;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
 
-      segment[(i==255)?0:(i+1)].red = 0;
-      segment[(i==255)?0:(i+1)].green = 0;
-      segment[(i==255)?0:(i+1)].blue = 1;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
     }
     else if(secHand == i){
       segment[i].red = 0;
       segment[i].green = 1;
       segment[i].blue = 0;
 
-      segment[(i==0)?255:(i-1)].red = 0;
-      segment[(i==0)?255:(i-1)].green = 1;
-      segment[(i==0)?255:(i-1)].blue = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
 
-      segment[(i==255)?0:(i+1)].red = 0;
-      segment[(i==255)?0:(i+1)].green = 1;
-      segment[(i==255)?0:(i+1)].blue = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
     }
     else {
       segment[i].red = 0;
       segment[i].green = 0;
       segment[i].blue = 0;
 
-      segment[(i==0)?255:(i-1)].red = 0;
-      segment[(i==0)?255:(i-1)].green = 0;
-      segment[(i==0)?255:(i-1)].blue = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
 
-      segment[(i==255)?0:(i+1)].red = 0;
-      segment[(i==255)?0:(i+1)].green = 0;
-      segment[(i==255)?0:(i+1)].blue = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
     }
   }
 }
