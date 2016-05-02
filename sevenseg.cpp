@@ -11,6 +11,8 @@ uint8_t digit4 = 10;
 
 boolean colon = false;
 
+uint8_t mpxCount = 0;
+
 void init7seg(uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t g, uint8_t dp, uint8_t colAn, uint8_t colCat)
 {
   pinMode(d1, OUTPUT);
@@ -51,6 +53,31 @@ void setOutput(uint8_t high, uint8_t low)
 
 void multiplex()
 {
+  // Disable all digits
+  digitalWrite(d1,HIGH);
+  digitalWrite(d2,HIGH);
+  digitalWrite(d3,HIGH);
+  digitalWrite(d4,HIGH);
+
+  // Set segments to be active
+
+
+  // Enable current digit
+  if(mpxCount == 0){
+    digitalWrite(d1,LOW);    
+  }
+  else if(mpxCount == 1){
+    digitalWrite(d2,LOW);   
+  }
+  else if(mpxCount == 2){
+    digitalWrite(d3,LOW);
+  }
+  else if(mpxCount == 3){
+    digitalWrite(d4,LOW);
+  }
+
+  mpxCount++;
+  if(mpxCount == 4) mpxCount = 0;
   
 }
 
