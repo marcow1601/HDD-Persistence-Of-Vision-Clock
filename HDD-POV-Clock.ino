@@ -13,6 +13,7 @@
 #include <TimerOne.h>       // Timer based interrupt events
 
 #include "libraries/DS3231/DS3231.h" // http://www.rinkydinkelectronics.com/library.php?id=73
+#include "sevenseg.h"
 
 
 #define PIN_R       3
@@ -21,6 +22,12 @@
 #define PIN_HALL    2       // This is the INT0 Pin of the ATMega8
 
 #define DIVISIONS   256.0f     // Number of segments the clock face is divided into
+
+/*
+ * Display mode defines for 4 digit 7 segment display with colon
+ */
+#define TIME        true
+#define TEMP        false
 
 #define runEvery(t) for (static uint16_t _lasttime;\
                          (uint16_t)((uint16_t)millis() - _lasttime) >= (t);\
@@ -68,6 +75,9 @@ void setup()
 
   attachInterrupt(digitalPinToInterrupt(PIN_HALL), hallISR, FALLING);
 
+  init7seg(0,1,2,3,4,5,6,7,8,9,10,11,12,13);
+  setMode(TIME);
+
   // The following lines can be uncommented to set the date and time
   //rtc.setDOW(WEDNESDAY);     // Set Day-of-Week to SUNDAY
   //rtc.setTime(12, 0, 0);     // Set the time to 12:00:00 (24hr format)
@@ -83,6 +93,13 @@ void loop()
     Time now = rtc.getTime();
 
     fillSegments(now);
+
+    setOutput(now.hour, now.min);
+  }
+
+  runEvery(5)
+  {
+    multiplex();
   }
 }
 
@@ -134,7 +151,7 @@ void fillSegments(Time time)
    * Minute: 0-60
    * Second: 0-60
    */
-  // Current position of clock hands across the 256 segments
+  // Current position of clock hands across the SEGMENTS
   uint8_t secHand = (uint8_t)((((uint16_t) time.sec)*DIVISIONS)/60.0f+0.5f);          // Always round to the nearest whole segment number
   uint8_t minHand = (uint8_t)((((uint16_t) time.min)*DIVISIONS)/60.0f+0.5f);
   uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour % 12)+(time.min/60.0f))*DIVISIONS)/12.0f+0.5f);       // Hour hand moves slowly with progressing minute count in current hour
