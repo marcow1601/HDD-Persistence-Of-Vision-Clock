@@ -47,9 +47,12 @@ volatile uint16_t revTime = 0;
 volatile uint16_t lastRev = micros();
 volatile uint16_t segTime = 0;
 volatile uint16_t currentSegment = 0;
+volatile float frequency = 0;
 
 void setup()
 {
+  Serial.begin(115200);
+  
   pinMode(PIN_HALL, INPUT);
   
   pinMode(PIN_R, OUTPUT);
@@ -66,7 +69,7 @@ void setup()
   Timer1.initialize();
   Timer1.attachInterrupt(draw);
 
-  attachInterrupt(digitalPinToInterrupt(PIN_HALL), hallISR, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PIN_HALL), hallISR, RISING);
 
   // The following lines can be uncommented to set the date and time
   //rtc.setDOW(WEDNESDAY);     // Set Day-of-Week to SUNDAY
@@ -78,12 +81,16 @@ void loop()
 {
   //escCalibration();
   // Get current time from DS3231 RTC every second
-  runEvery(1000)
+  /*runEvery(1000)
   {
     Time now = rtc.getTime();
 
     fillSegments(now);
-  }
+  }*/
+
+  //Time now;
+
+  //fillSegments(now);
 }
 
 void escCalibration()
@@ -107,11 +114,31 @@ void escCalibration()
 void hallISR()
 {
   revTime = micros() - lastRev;
-  lastRev = micros();
-  segTime = (int) revTime / DIVISIONS;
+  if(revTime >= 5000){
+    lastRev = micros();
+    segTime = (int) revTime / DIVISIONS;
 
-  Timer1.setPeriod(segTime);
+    //Timer1.setPeriod(segTime);
+
+    digitalWrite(PIN_R, digitalRead(PIN_B)^1);
+    digitalWrite(PIN_G, digitalRead(PIN_R)^1);
+    digitalWrite(PIN_B, digitalRead(PIN_G)^1);
+
+    Serial.println(revTime);
+    
+  }
 }
+
+/*void hallISR()
+{
+  revTime = micros() - lastRev;
+  if(revTime >= 5000){
+    lastRev = micros();
+    frequency = 1000000.0f/revTime;
+    Serial.println(frequency);
+  }
+  
+}*/
 
 
 void draw()
@@ -134,6 +161,10 @@ void fillSegments(Time time)
    * Minute: 0-60
    * Second: 0-60
    */
+
+   time.hour = 3;
+   time.min = 30;
+   time.sec = 45;
   // Current position of clock hands across the 256 segments
   uint8_t secHand = (uint8_t)((((uint16_t) time.sec)*DIVISIONS)/60.0f+0.5f);          // Always round to the nearest whole segment number
   uint8_t minHand = (uint8_t)((((uint16_t) time.min)*DIVISIONS)/60.0f+0.5f);
