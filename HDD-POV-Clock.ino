@@ -21,6 +21,7 @@
 #define PIN_HALL    2       // This is the INT0 Pin of the ATMega8
 
 #define DIVISIONS   256     // Number of segments the clock face is divided into
+#define OFFSET      (int)((DIVISIONS)*0.715f) // Required offset approx. 257°, empirical value/depends on hall placement
 
 #define runEvery(t) for (static uint16_t _lasttime;\
                          (uint16_t)((uint16_t)millis() - _lasttime) >= (t);\
@@ -46,34 +47,13 @@ LED segment[(int)DIVISIONS];
 volatile uint16_t revTime = 0;
 volatile uint16_t lastRev = micros();
 volatile uint16_t segTime = 0;
-volatile uint16_t currentSegment = 0;
+volatile uint16_t currentSegment = OFFSET;
 volatile float frequency = 0;
 
 void setup()
 {
   
   for(uint16_t i=0; i<DIVISIONS; i++){
-    /*if((i%4) == 0){
-      segment[i].red = 0;
-      segment[i].green = 0;
-      segment[i].blue = 0;
-    }
-    else if((i%4) == 1){
-      segment[i].red = 1;
-      segment[i].green = 0;
-      segment[i].blue = 0;
-    }
-    else if((i%4) == 2){
-      segment[i].red = 0;
-      segment[i].green = 1;
-      segment[i].blue = 0;
-    }
-    else{
-      segment[i].red = 0;
-      segment[i].green = 0;
-      segment[i].blue = 1;
-    }*/
-
     segment[i].red = 0;
     segment[i].green = 0;
     segment[i].blue = 0;
@@ -145,20 +125,18 @@ void hallISR()
     lastRev = micros();
     segTime = (int) revTime / DIVISIONS;
 
-    currentSegment=0;
+    currentSegment=OFFSET;
     
     Timer1.setPeriod(segTime);
     Timer1.start();
     
-    Serial.println(segTime);
+    //Serial.println(segTime);
     
   }
 }
 
 void draw()
-{
-  //Serial.println(currentSegment);
-  
+{  
   digitalWrite(PIN_R, segment[currentSegment].red);
   digitalWrite(PIN_G, segment[currentSegment].green);
   digitalWrite(PIN_B, segment[currentSegment].blue);
@@ -181,13 +159,18 @@ void fillSegments(Time time)
    * Second: 0-60
    */
 
-   time.hour = 3;
-   time.min = 30;
-   time.sec = 45;
+   time.hour = 9;
+   time.min = 45;
+   time.sec = 0;
   // Current position of clock hands across the 256 segments
   uint8_t secHand = (uint8_t)((((uint16_t) time.sec)*DIVISIONS)/60.0f+0.5f);          // Always round to the nearest whole segment number
   uint8_t minHand = (uint8_t)((((uint16_t) time.min)*DIVISIONS)/60.0f+0.5f);
   uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour % 12)+(time.min/60.0f))*DIVISIONS)/12.0f+0.5f);       // Hour hand moves slowly with progressing minute count in current hour
+
+  // Mirror hand positions because of count clockwise spinning spindle
+  secHand = DIVISIONS-secHand;
+  minHand = DIVISIONS-minHand;
+  hourHand = DIVISIONS-hourHand;
   
   
   for(uint8_t i = 0; i<DIVISIONS; i++)
