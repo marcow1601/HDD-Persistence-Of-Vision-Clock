@@ -20,7 +20,7 @@
 #define PIN_B       6
 #define PIN_HALL    2       // This is the INT0 Pin of the ATMega8
 
-#define DIVISIONS   256.0f     // Number of segments the clock face is divided into
+#define DIVISIONS   256     // Number of segments the clock face is divided into
 
 #define runEvery(t) for (static uint16_t _lasttime;\
                          (uint16_t)((uint16_t)millis() - _lasttime) >= (t);\
@@ -40,7 +40,7 @@ DS3231  rtc(SDA, SCL); // create DS3231 RTC object
 //####### Variables ##########
 //############################
 
-LED segment[(int)DIVISIONS] = {0};
+LED segment[(int)DIVISIONS];
 
 // Global, interrupt accessible variables
 volatile uint16_t revTime = 0;
@@ -51,6 +51,34 @@ volatile float frequency = 0;
 
 void setup()
 {
+  
+  for(uint16_t i=0; i<DIVISIONS; i++){
+    /*if((i%4) == 0){
+      segment[i].red = 0;
+      segment[i].green = 0;
+      segment[i].blue = 0;
+    }
+    else if((i%4) == 1){
+      segment[i].red = 1;
+      segment[i].green = 0;
+      segment[i].blue = 0;
+    }
+    else if((i%4) == 2){
+      segment[i].red = 0;
+      segment[i].green = 1;
+      segment[i].blue = 0;
+    }
+    else{
+      segment[i].red = 0;
+      segment[i].green = 0;
+      segment[i].blue = 1;
+    }*/
+
+    segment[i].red = 0;
+    segment[i].green = 0;
+    segment[i].blue = 0;
+  }
+ 
   Serial.begin(115200);
   
   pinMode(PIN_HALL, INPUT);
@@ -81,16 +109,13 @@ void loop()
 {
   //escCalibration();
   // Get current time from DS3231 RTC every second
-  /*runEvery(1000)
+  runEvery(1000)
   {
-    Time now = rtc.getTime();
+    Time now; //= rtc.getTime();
 
     fillSegments(now);
-  }*/
-
-  //Time now;
-
-  //fillSegments(now);
+  }
+  
 }
 
 void escCalibration()
@@ -115,37 +140,31 @@ void hallISR()
 {
   revTime = micros() - lastRev;
   if(revTime >= 5000){
+    Timer1.stop();
+    
     lastRev = micros();
     segTime = (int) revTime / DIVISIONS;
 
-    //Timer1.setPeriod(segTime);
-
-    digitalWrite(PIN_R, digitalRead(PIN_B)^1);
-    digitalWrite(PIN_G, digitalRead(PIN_R)^1);
-    digitalWrite(PIN_B, digitalRead(PIN_G)^1);
-
-    Serial.println(revTime);
+    currentSegment=0;
+    
+    Timer1.setPeriod(segTime);
+    Timer1.start();
+    
+    Serial.println(segTime);
     
   }
 }
 
-/*void hallISR()
-{
-  revTime = micros() - lastRev;
-  if(revTime >= 5000){
-    lastRev = micros();
-    frequency = 1000000.0f/revTime;
-    Serial.println(frequency);
-  }
-  
-}*/
-
-
 void draw()
 {
+  //Serial.println(currentSegment);
+  
   digitalWrite(PIN_R, segment[currentSegment].red);
   digitalWrite(PIN_G, segment[currentSegment].green);
   digitalWrite(PIN_B, segment[currentSegment].blue);
+  
+  currentSegment++;
+  if(currentSegment >= DIVISIONS) currentSegment = 0;
 }
 
 void updateTime()
