@@ -1,5 +1,21 @@
 #include "sevenseg.h"
 
+// Dynamic pin declaration
+uint8_t d1;
+uint8_t d2;
+uint8_t d3;
+uint8_t d4;
+uint8_t a;
+uint8_t b;
+uint8_t c;
+uint8_t d;
+uint8_t e;
+uint8_t f;
+uint8_t g;
+uint8_t dp;
+uint8_t colAn;
+uint8_t colCat;
+
 uint8_t code[16] = {
   0
 };
@@ -15,6 +31,21 @@ uint8_t mpxCount = 0;
 
 void init7seg(uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4, uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint8_t e, uint8_t f, uint8_t g, uint8_t dp, uint8_t colAn, uint8_t colCat)
 {
+  d1 = d1;
+  d2 = d2;
+  d3 = d3;
+  d4 = d4;
+  a = a;
+  b = b;
+  c = c;
+  d = d;
+  e = e;
+  f = f;
+  g = g;
+  dp = dp;
+  colAn = colAn;
+  colCat = colCat;
+  
   pinMode(d1, OUTPUT);
   pinMode(d2, OUTPUT);
   pinMode(d3, OUTPUT);

@@ -2,37 +2,62 @@
  * 
  * Hard drive disk (HDD) Persistence-of-Vision (POV) Clock 
  * 
- * Marco Wagner
- * May/April 2016
+ * School project
+ * 
+ * Author: Marco Wagner
+ * April/May 2016
  * 
 ******************************************************************/
 
 #include <Servo.h>          // Library to output 1-2ms pulses @ 50Hz
 #include <avr/io.h>         // Definition of interrupt names
 #include <avr/interrupt.h>  // ISR interrupt service routine
+#include <Wire.h>           // I²C library
+
 #include <TimerOne.h>       // Timer based interrupt events
+#include <RTClib.h>         // Adafruit DS3231 RTC-library
 
-#include "libraries/DS3231/DS3231.h" // http://www.rinkydinkelectronics.com/library.php?id=73
-#include "sevenseg.h"
+#include "sevenseg.h"       // external ressources for 7 segment display control
 
+
+//############################
+//######### Defines ##########
+//############################
 
 #define PIN_R       3
 #define PIN_G       5
 #define PIN_B       6
 #define PIN_HALL    2       // This is the INT0 Pin of the ATMega8
+#define PIN_MOTOR   4
 
 #define DIVISIONS   256     // Number of segments the clock face is divided into
-#define OFFSET      (int)((DIVISIONS)*0.715f) // Required offset approx. 257°, empirical value/depends on hall placement
+#define OFFSET      (int)((DIVISIONS)*0.715f) // Required segment offset approx. 257°, empirical value/depends on hall placement
 
-/*
- * Display mode defines for 4 digit 7 segment display with colon
- */
+// modes of 4 digital 7 segment display with colon
 #define TIME        true
 #define TEMP        false
+
+
+//############################
+//######### Macros ###########
+//############################
 
 #define runEvery(t) for (static uint16_t _lasttime;\
                          (uint16_t)((uint16_t)millis() - _lasttime) >= (t);\
                          _lasttime += (t))
+
+
+//############################
+//######## Objects ###########
+//############################
+
+Servo motor;      // create servo object to control a servo
+RTC_DS3231 rtc;   // create RTC object
+
+
+//############################
+//####### Variables ##########
+//############################
 
 struct LED
 {
@@ -41,25 +66,24 @@ struct LED
   bool blue : 1;  
 };
 
-Servo esc;  // create servo object to control a servo
-DS3231  rtc(SDA, SCL); // create DS3231 RTC object
-
-//############################
-//####### Variables ##########
-//############################
-
 LED segment[(int)DIVISIONS];
+DateTime now;
+
 
 // Global, interrupt accessible variables
 volatile uint16_t revTime = 0;
 volatile uint16_t lastRev = micros();
 volatile uint16_t segTime = 0;
 volatile uint16_t currentSegment = OFFSET;
-volatile float frequency = 0;
+
+
+//############################
+//####### Functions ##########
+//############################
 
 void setup()
 {
-  
+  // Zero-init segment color storage array
   for(uint16_t i=0; i<DIVISIONS; i++){
     segment[i].red = 0;
     segment[i].green = 0;
@@ -77,81 +101,87 @@ void setup()
   digitalWrite(PIN_R, LOW);
   digitalWrite(PIN_G, LOW);
   digitalWrite(PIN_B, LOW);
-  
-  esc.attach(9);  // Attaches the servo on pin 9 to the servo object
-  rtc.begin();    // Initialize the rtc object
 
+  // Attach the brushless speed controller on PIN_MOTOR to the servo object
+  motor.attach(PIN_MOTOR);    
+  
+  // Initialize DS3231 RTC readout
+  rtc.begin();      // Initialize the rtc object
+  now = rtc.now();  // Request current time from DS3231 RTC
+
+  // Prepare manual control of hardware timer 1
   Timer1.initialize();
   Timer1.attachInterrupt(draw);
 
+  // Attach an external interrupt to the hall sensor pin triggered on a rising signal edge
   attachInterrupt(digitalPinToInterrupt(PIN_HALL), hallISR, RISING);
 
-  init7seg(0,1,2,3,4,5,6,7,8,9,10,11,12,13);
-  setMode(TIME);
-
-  // The following lines can be uncommented to set the date and time
-  //rtc.setDOW(WEDNESDAY);     // Set Day-of-Week to SUNDAY
-  //rtc.setTime(12, 0, 0);     // Set the time to 12:00:00 (24hr format)
-  //rtc.setDate(1, 1, 2014);   // Set the date to January 1st, 2014
+  //init7seg(0,1,2,3,4,5,6,7,8,9,10,11,12,13);
+  //setMode(TIME);
 }
 
 void loop()
 {
-  //escCalibration();
+  
   // Get current time from DS3231 RTC every second
   runEvery(1000)
   {
-    Time now; //= rtc.getTime();
+    now = rtc.now();
 
     fillSegments(now);
 
-    setOutput(now.hour, now.min);
+    //setOutput(now.hour, now.min);
   }
 
-  runEvery(5)
+  /*runEvery(5)
   {
     multiplex();
-  }
+  }*/
   
 }
 
+
+// Teach Brushless Speed Controller minimum and maximum throttle values
 void escCalibration()
 {
   // Sweep ESC control one cycle Min-Max-Min on power-up
   for(uint8_t i = 20; i<= 180 ; i++)
   {
-    esc.write(i);
+    motor.write(i);
     delay(5);
   }
   delay(100);
   for(uint8_t i = 179; i>= 20; i--)
   {
-    esc.write(i);
+    motor.write(i);
     delay(5);
   }
   // Wait for initialization sound to finish
   delay(5000);
 }
 
+
+// This is the hall sensor triggered Interrupt Service Routine
 void hallISR()
 {
   revTime = micros() - lastRev;
+
+  // Ignore 
   if(revTime >= 5000){
     Timer1.stop();
     
     lastRev = micros();
-    segTime = (int) revTime / DIVISIONS;
+    segTime = (int)((revTime / DIVISIONS)+0.5f);
 
     currentSegment=OFFSET;
     
     Timer1.setPeriod(segTime);
     Timer1.start();
-    
-    //Serial.println(segTime);
-    
   }
 }
 
+
+// Switch LED strip color the the one required of the currently active segment
 void draw()
 {  
   digitalWrite(PIN_R, segment[currentSegment].red);
@@ -162,12 +192,9 @@ void draw()
   if(currentSegment >= DIVISIONS) currentSegment = 0;
 }
 
-void updateTime()
-{
-  
-}
 
-void fillSegments(Time time)
+// Calculate current position of clock hands across the clock face DIVISIONS according to the current time
+void fillSegments(DateTime time)
 {
   /*
    * Calculation of clock hand positions
@@ -176,22 +203,19 @@ void fillSegments(Time time)
    * Second: 0-60
    */
 
-   time.hour = 9;
-   time.min = 45;
-   time.sec = 0;
-  
   // Current position of clock hands across the DIVISIONS
-  uint8_t secHand = (uint8_t)((((uint16_t) time.sec)*DIVISIONS)/60.0f+0.5f);          // Always round to the nearest whole segment number
-  uint8_t minHand = (uint8_t)((((uint16_t) time.min)*DIVISIONS)/60.0f+0.5f);
-  uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour % 12)+(time.min/60.0f))*DIVISIONS)/12.0f+0.5f);       // Hour hand moves slowly with progressing minute count in current hour
+  uint8_t secHand = (uint8_t)((((uint16_t) time.second())*DIVISIONS)/60.0f+0.5f);          // Always round to the nearest whole segment number
+  uint8_t minHand = (uint8_t)((((uint16_t) time.minute())*DIVISIONS)/60.0f+0.5f);
+  uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour() % 12))*DIVISIONS)/12.0f+0.5f);
+  //uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour % 12)+(time.minute/60.0f))*DIVISIONS)/12.0f+0.5f);       // Hour hand moves slowly with progressing minute count in current hour
 
-  // Mirror hand positions because of count clockwise spinning spindle
+  // Mirror hand positions because of counter-clockwise spinning spindle
   secHand = DIVISIONS-secHand;
   minHand = DIVISIONS-minHand;
   hourHand = DIVISIONS-hourHand;
   
   
-  for(uint8_t i = 0; i<DIVISIONS; i++)
+  for(uint16_t i = 0; i<DIVISIONS; i++)
   {
     if(hourHand == i){
       segment[i].red = 1;
