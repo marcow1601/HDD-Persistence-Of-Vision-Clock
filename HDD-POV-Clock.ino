@@ -30,7 +30,7 @@
 #define PIN_HALL    2       // This is the INT0 Pin of the ATMega8
 #define PIN_MOTOR   4
 
-#define DIVISIONS   256     // Number of segments the clock face is divided into
+#define DIVISIONS   64     // Number of segments the clock face is divided into
 #define OFFSET      (int)((DIVISIONS)*0.715f) // Required segment offset approx. 257°, empirical value/depends on hall placement
 
 // modes of 4 digital 7 segment display with colon
@@ -127,10 +127,20 @@ void loop()
   runEvery(1000)
   {
     now = rtc.now();
-
-    fillSegments(now);
-
+    /*
+    Serial.println("------------------------------------");
+    Serial.println("hr-min-sec");
+    Serial.print(now.hour(), DEC);
+    Serial.print("-");
+    Serial.print(now.minute(), DEC);
+    Serial.print("-");
+    Serial.println(now.second(), DEC);
+*/
     //setOutput(now.hour, now.min);
+  }
+
+  runEvery(50){
+    fillSegments(now);
   }
 
   /*runEvery(5)
@@ -166,7 +176,7 @@ void hallISR()
 {
   revTime = micros() - lastRev;
 
-  // Ignore 
+  // Ignore misleading interrupt triggering
   if(revTime >= 5000){
     Timer1.stop();
     
@@ -202,13 +212,28 @@ void fillSegments(DateTime time)
    * Minute: 0-60
    * Second: 0-60
    */
+  // Acquire hour/minute/second from DateTime-variable
+  uint8_t h = time.hour();
+  uint8_t m = time.minute();
+  uint8_t s = time.second();
+
+  // Convert 24h-format to 12h format
+  if(h >= 12) h -= 12;
 
   // Current position of clock hands across the DIVISIONS
-  uint8_t secHand = (uint8_t)((((uint16_t) time.second())*DIVISIONS)/60.0f+0.5f);          // Always round to the nearest whole segment number
-  uint8_t minHand = (uint8_t)((((uint16_t) time.minute())*DIVISIONS)/60.0f+0.5f);
-  uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour() % 12))*DIVISIONS)/12.0f+0.5f);
+  uint8_t secHand = (uint8_t)((((uint16_t) s)*DIVISIONS)/60.0f+0.5f);          // Always round to the nearest whole segment number
+  uint8_t minHand = (uint8_t)((((uint16_t) m)*DIVISIONS)/60.0f+0.5f);
+  uint8_t hourHand = (uint8_t)((((uint16_t) h)*DIVISIONS)/12.0f+0.5f);
   //uint8_t hourHand = (uint8_t)((((uint16_t)(time.hour % 12)+(time.minute/60.0f))*DIVISIONS)/12.0f+0.5f);       // Hour hand moves slowly with progressing minute count in current hour
 
+  /*Serial.println("Positions");
+  Serial.print(hourHand);
+  Serial.print("-");
+  Serial.print(minHand);
+  Serial.print("-");
+  Serial.println(secHand);*/
+   
+  
   // Mirror hand positions because of counter-clockwise spinning spindle
   secHand = DIVISIONS-secHand;
   minHand = DIVISIONS-minHand;
@@ -218,19 +243,6 @@ void fillSegments(DateTime time)
   for(uint16_t i = 0; i<DIVISIONS; i++)
   {
     if(hourHand == i){
-      segment[i].red = 1;
-      segment[i].green = 0;
-      segment[i].blue = 0;
-
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
-
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
-    }
-    else if(minHand == i){
       segment[i].red = 0;
       segment[i].green = 0;
       segment[i].blue = 1;
@@ -243,7 +255,7 @@ void fillSegments(DateTime time)
       segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
       segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
     }
-    else if(secHand == i){
+    else if(minHand == i){
       segment[i].red = 0;
       segment[i].green = 1;
       segment[i].blue = 0;
@@ -256,18 +268,31 @@ void fillSegments(DateTime time)
       segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
       segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
     }
-    else {
-      segment[i].red = 0;
-      segment[i].green = 0;
+    else if(secHand == i){
+      segment[i].red = 1;
+      segment[i].green = 1;
       segment[i].blue = 0;
 
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
       segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
 
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
       segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
+    }
+    else {
+      segment[i].red = 1;
+      segment[i].green = 1;
+      segment[i].blue = 1;
+
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
+      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
+
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
+      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
     }
   }
 }
