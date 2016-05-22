@@ -56,7 +56,7 @@ const uint8_t white = 7;
 uint8_t width = 5;                    // Number of segments that a clock hand occupies; MUST BE an odd number
 
 // Desired color of clock face; replace predefined color-codes by any of the ones given above in the "Defines" area
-uint8_t bgr_clr = green;    // Background color
+uint8_t bgr_clr = black;    // Background color
 uint8_t hr_clr = red;       // Hour hand
 uint8_t min_clr = purple;    // Minute hand
 uint8_t sec_clr = cyan;     // Second hand
@@ -164,7 +164,7 @@ void loop()
     //setOutput(now.hour, now.min);
   }
 
-  runEvery(2000){
+  runEvery(500){
     fillSegments(now);
   }
 
@@ -263,68 +263,31 @@ void fillSegments(DateTime time)
   secHand = DIVISIONS-secHand;
   minHand = DIVISIONS-minHand;
   hourHand = DIVISIONS-hourHand;
-  
+
+  // Clear entire hidden page of segment buffer array with background color
   for(uint16_t i = 0; i<DIVISIONS; i++){
-    segment[1][i].red = 0;//(bgr_clr >> 2) & 1;
-    segment[1][i].green = 1;//(bgr_clr >> 1) & 1;
-    segment[1][i].blue = 0;//(bgr_clr) & 1;
+    segment[1][i].red = (bgr_clr >> 2) & 1;
+    segment[1][i].green = (bgr_clr >> 1) & 1;
+    segment[1][i].blue = (bgr_clr) & 1;
   }
+
   
-  /*for(uint16_t i = 0; i<DIVISIONS; i++)
-  {
-    if(hourHand == i){
-      segment[1][i].red = 1;
-      segment[1][i].green = 0;
-      segment[1][i].blue = 1;
+  for(int8_t i = -((width-1)/2); i<=((width-1)/2); i++){
+    // Draw hour hand
+    segment[1][(hourHand+i+DIVISIONS)%DIVISIONS].red = (hr_clr >> 2) & 1;
+    segment[1][(hourHand+i+DIVISIONS)%DIVISIONS].green = (hr_clr >> 1) & 1;
+    segment[1][(hourHand+i+DIVISIONS)%DIVISIONS].blue = (hr_clr) & 1;
 
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
+    // Draw minute hand
+    segment[1][(minHand+i+DIVISIONS)%DIVISIONS].red = (min_clr >> 2) & 1;
+    segment[1][(minHand+i+DIVISIONS)%DIVISIONS].green = (min_clr >> 1) & 1;
+    segment[1][(minHand+i+DIVISIONS)%DIVISIONS].blue = (min_clr) & 1;
 
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
-    }
-    else if(minHand == i){
-      segment[1][i].red = 0;
-      segment[1][i].green = 1;
-      segment[1][i].blue = 0;
-
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
-
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
-    }
-    else if(secHand == i){
-      segment[1][i].red = 1;
-      segment[1][i].green = 1;
-      segment[1][i].blue = 0;
-
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
-
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
-    }
-    else {
-      segment[1][i].red = 0;
-      segment[1][i].green = 0;
-      segment[1][i].blue = 1;
-
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
-
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
-    }
-  }*/
+    // Draw second hand
+    segment[1][(secHand+i+DIVISIONS)%DIVISIONS].red = (sec_clr >> 2) & 1;
+    segment[1][(secHand+i+DIVISIONS)%DIVISIONS].green = (sec_clr >> 1) & 1;
+    segment[1][(secHand+i+DIVISIONS)%DIVISIONS].blue = (sec_clr) & 1;
+  }
 }
 
 // Copy content from hidden to visible page; must be as time efficient as possible to avoid flickering of output
