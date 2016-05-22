@@ -19,7 +19,6 @@
 
 #include "sevenseg.h"       // external ressources for 7 segment display control
 
-
 //############################
 //######### Defines ##########
 //############################
@@ -30,12 +29,37 @@
 #define PIN_HALL    2       // This is the INT0 Pin of the ATMega8
 #define PIN_MOTOR   4
 
-#define DIVISIONS   64     // Number of segments the clock face is divided into
+#define DIVISIONS   256     // Number of segments the clock face is divided into
 #define OFFSET      (int)((DIVISIONS)*0.715f) // Required segment offset approx. 257°, empirical value/depends on hall placement
+
+
+// Color codes "RGB"
+#define BLACK       000
+#define RED         100
+#define GREEN       010
+#define BLUE        001
+#define YELLOW      110
+#define PURPLE      101
+#define CYAN        011
+#define WHITE       111
 
 // modes of 4 digital 7 segment display with colon
 #define TIME        true
 #define TEMP        false
+
+/**********************************************************************************************************************************/
+//############################
+//## USER CONFIGURABLE AREA ##
+//############################
+/**********************************************************************************************************************************/
+
+uint8_t width = 5;                    // Number of segments that a clock hand occupies; should be an odd number
+
+// Desired color of clock face; replace predefined color-codes by any of the ones given above in the "Defines" area
+uint8_t bgr_clr = (uint8_t) BLACK;    // Background color
+uint8_t hr_clr = (uint8_t) RED;       // Hour hand
+uint8_t min_clr = (uint8_t) GREEN;    // Minute hand
+uint8_t sec_clr = (uint8_t) CYAN;     // Second hand
 
 
 //############################
@@ -48,16 +72,12 @@
 
 
 //############################
-//######## Objects ###########
+//### Variables and Objects###
 //############################
 
 Servo motor;      // create servo object to control a servo
 RTC_DS3231 rtc;   // create RTC object
-
-
-//############################
-//####### Variables ##########
-//############################
+DateTime now;     // DateTime instance returned by DS3231 RTC
 
 struct LED
 {
@@ -65,6 +85,7 @@ struct LED
   bool green : 1;
   bool blue : 1;  
 };
+
 
 /*
  * Storage array for required color of all segments
@@ -75,8 +96,6 @@ struct LED
  * 
  */
 LED segment[2][(int)DIVISIONS];
-
-DateTime now;
 
 
 // Global, interrupt accessible variables
@@ -214,16 +233,17 @@ void fillSegments(DateTime time)
 {
   /*
    * Calculation of clock hand positions
-   * Hour:    0-24       (Hour hand completes run twice a day)
-   * Minute: 0-60
-   * Second: 0-60
+   * Hour:    0-23       (Hour hand completes run twice a day)
+   * Minute: 0-59
+   * Second: 0-59
    */
+   
   // Acquire hour/minute/second from DateTime-variable
   uint8_t h = time.hour();
   uint8_t m = time.minute();
   uint8_t s = time.second();
 
-  // Convert 24h-format to 12h format
+  // Convert 24h-format hour value to 12h format
   if(h >= 12) h -= 12;
 
   // Current position of clock hands across the DIVISIONS
@@ -249,15 +269,15 @@ void fillSegments(DateTime time)
   for(uint16_t i = 0; i<DIVISIONS; i++)
   {
     if(hourHand == i){
-      segment[1][i].red = 0;
+      segment[1][i].red = 1;
       segment[1][i].green = 0;
       segment[1][i].blue = 1;
 
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
       segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
       segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
 
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
       segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
       segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
     }
@@ -288,16 +308,16 @@ void fillSegments(DateTime time)
       segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
     }
     else {
-      segment[1][i].red = 1;
-      segment[1][i].green = 1;
+      segment[1][i].red = 0;
+      segment[1][i].green = 0;
       segment[1][i].blue = 1;
 
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
-      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
       segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
 
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
-      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
       segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
     }
   }
