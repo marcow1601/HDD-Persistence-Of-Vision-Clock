@@ -34,14 +34,14 @@
 
 
 // Color codes "RGB"
-#define BLACK       000
-#define RED         100
-#define GREEN       010
-#define BLUE        001
-#define YELLOW      110
-#define PURPLE      101
-#define CYAN        011
-#define WHITE       111
+const uint8_t black = 0;
+const uint8_t red = 4;
+const uint8_t green = 2;
+const uint8_t blue = 1;
+const uint8_t yellow = 6;
+const uint8_t purple = 5;
+const uint8_t cyan = 3;
+const uint8_t white = 7;
 
 // modes of 4 digital 7 segment display with colon
 #define TIME        true
@@ -53,13 +53,13 @@
 //############################
 /**********************************************************************************************************************************/
 
-uint8_t width = 5;                    // Number of segments that a clock hand occupies; should be an odd number
+uint8_t width = 5;                    // Number of segments that a clock hand occupies; MUST BE an odd number
 
 // Desired color of clock face; replace predefined color-codes by any of the ones given above in the "Defines" area
-uint8_t bgr_clr = (uint8_t) BLACK;    // Background color
-uint8_t hr_clr = (uint8_t) RED;       // Hour hand
-uint8_t min_clr = (uint8_t) GREEN;    // Minute hand
-uint8_t sec_clr = (uint8_t) CYAN;     // Second hand
+uint8_t bgr_clr = green;    // Background color
+uint8_t hr_clr = red;       // Hour hand
+uint8_t min_clr = purple;    // Minute hand
+uint8_t sec_clr = cyan;     // Second hand
 
 
 //############################
@@ -164,7 +164,7 @@ void loop()
     //setOutput(now.hour, now.min);
   }
 
-  runEvery(499){
+  runEvery(2000){
     fillSegments(now);
   }
 
@@ -258,15 +258,19 @@ void fillSegments(DateTime time)
   Serial.print(minHand);
   Serial.print("-");
   Serial.println(secHand);*/
-   
   
   // Mirror hand positions because of counter-clockwise spinning spindle
   secHand = DIVISIONS-secHand;
   minHand = DIVISIONS-minHand;
   hourHand = DIVISIONS-hourHand;
   
+  for(uint16_t i = 0; i<DIVISIONS; i++){
+    segment[1][i].red = 0;//(bgr_clr >> 2) & 1;
+    segment[1][i].green = 1;//(bgr_clr >> 1) & 1;
+    segment[1][i].blue = 0;//(bgr_clr) & 1;
+  }
   
-  for(uint16_t i = 0; i<DIVISIONS; i++)
+  /*for(uint16_t i = 0; i<DIVISIONS; i++)
   {
     if(hourHand == i){
       segment[1][i].red = 1;
@@ -320,7 +324,7 @@ void fillSegments(DateTime time)
       segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
       segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
     }
-  }
+  }*/
 }
 
 // Copy content from hidden to visible page; must be as time efficient as possible to avoid flickering of output
