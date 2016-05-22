@@ -66,7 +66,16 @@ struct LED
   bool blue : 1;  
 };
 
-LED segment[(int)DIVISIONS];
+/*
+ * Storage array for required color of all segments
+ * 
+ * 2 pages
+ * Page 0: active/visible page
+ * Page 1: hidden page for updating
+ * 
+ */
+LED segment[2][(int)DIVISIONS];
+
 DateTime now;
 
 
@@ -85,9 +94,12 @@ void setup()
 {
   // Zero-init segment color storage array
   for(uint16_t i=0; i<DIVISIONS; i++){
-    segment[i].red = 0;
-    segment[i].green = 0;
-    segment[i].blue = 0;
+    segment[0][i].red = 0;
+    segment[0][i].green = 0;
+    segment[0][i].blue = 0;
+    segment[1][i].red = 0;
+    segment[1][i].green = 0;
+    segment[1][i].blue = 0;
   }
  
   Serial.begin(115200);
@@ -127,19 +139,13 @@ void loop()
   runEvery(1000)
   {
     now = rtc.now();
-    /*
-    Serial.println("------------------------------------");
-    Serial.println("hr-min-sec");
-    Serial.print(now.hour(), DEC);
-    Serial.print("-");
-    Serial.print(now.minute(), DEC);
-    Serial.print("-");
-    Serial.println(now.second(), DEC);
-*/
+
+    makeVisible();
+    
     //setOutput(now.hour, now.min);
   }
 
-  runEvery(50){
+  runEvery(499){
     fillSegments(now);
   }
 
@@ -194,16 +200,16 @@ void hallISR()
 // Switch LED strip color the the one required of the currently active segment
 void draw()
 {  
-  digitalWrite(PIN_R, segment[currentSegment].red);
-  digitalWrite(PIN_G, segment[currentSegment].green);
-  digitalWrite(PIN_B, segment[currentSegment].blue);
+  digitalWrite(PIN_R, segment[0][currentSegment].red);
+  digitalWrite(PIN_G, segment[0][currentSegment].green);
+  digitalWrite(PIN_B, segment[0][currentSegment].blue);
   
   currentSegment++;
   if(currentSegment >= DIVISIONS) currentSegment = 0;
 }
 
 
-// Calculate current position of clock hands across the clock face DIVISIONS according to the current time
+// Calculate current position of clock hands across the clock face DIVISIONS according to the current time; store update in hidden page
 void fillSegments(DateTime time)
 {
   /*
@@ -243,56 +249,65 @@ void fillSegments(DateTime time)
   for(uint16_t i = 0; i<DIVISIONS; i++)
   {
     if(hourHand == i){
-      segment[i].red = 0;
-      segment[i].green = 0;
-      segment[i].blue = 1;
+      segment[1][i].red = 0;
+      segment[1][i].green = 0;
+      segment[1][i].blue = 1;
 
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 0;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
 
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 0;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
     }
     else if(minHand == i){
-      segment[i].red = 0;
-      segment[i].green = 1;
-      segment[i].blue = 0;
+      segment[1][i].red = 0;
+      segment[1][i].green = 1;
+      segment[1][i].blue = 0;
 
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 0;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
 
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 0;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
     }
     else if(secHand == i){
-      segment[i].red = 1;
-      segment[i].green = 1;
-      segment[i].blue = 0;
+      segment[1][i].red = 1;
+      segment[1][i].green = 1;
+      segment[1][i].blue = 0;
 
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 0;
 
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 0;
     }
     else {
-      segment[i].red = 1;
-      segment[i].green = 1;
-      segment[i].blue = 1;
+      segment[1][i].red = 1;
+      segment[1][i].green = 1;
+      segment[1][i].blue = 1;
 
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
-      segment[(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].red = 1;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].green = 1;
+      segment[1][(i==0)?((int)(DIVISIONS-1)):(i-1)].blue = 1;
 
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
-      segment[(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].red = 1;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].green = 1;
+      segment[1][(i==((int)(DIVISIONS-1)))?0:(i+1)].blue = 1;
     }
   }
 }
+
+// Copy content from hidden to visible page; must be as time efficient as possible to avoid flickering of output
+void makeVisible()
+{
+  for(uint16_t i = 0; i<DIVISIONS; i++){
+    segment[0][i] = segment[1][i];
+  }
+}
+
