@@ -1,5 +1,12 @@
 #include "sevenseg.h"
 
+#define runEvery(t) for (static uint16_t _lasttime;\
+                         (uint16_t)((uint16_t)millis() - _lasttime) >= (t);\
+                         _lasttime += (t))
+
+
+
+
 // Dynamic pin declaration
 uint8_t d1;
 uint8_t d2;
@@ -13,8 +20,7 @@ uint8_t e;
 uint8_t f;
 uint8_t g;
 uint8_t dp;
-uint8_t colAn;
-uint8_t colCat;
+uint8_t col;
 
 // 7-segment binary code
 // dp-a-b-c-d-e-f-g
@@ -47,7 +53,7 @@ boolean colon = false;
 
 uint8_t mpxCount = 0;
 
-void init7seg(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t segA, uint8_t segB, uint8_t segC, uint8_t segD, uint8_t segE, uint8_t segF, uint8_t segG, uint8_t segDP, uint8_t colPos, uint8_t colNeg)
+void init7seg(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t segA, uint8_t segB, uint8_t segC, uint8_t segD, uint8_t segE, uint8_t segF, uint8_t segG, uint8_t segDP, uint8_t segColon)
 {
   d1 = dig1;
   d2 = dig2;
@@ -61,8 +67,7 @@ void init7seg(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t se
   f = segF;
   g = segG;
   dp = segDP;
-  colAn = colPos;
-  colCat = colNeg;
+  col = segColon;
 
   pinMode(d1, OUTPUT);
   pinMode(d2, OUTPUT);
@@ -95,20 +100,15 @@ void init7seg(uint8_t dig1, uint8_t dig2, uint8_t dig3, uint8_t dig4, uint8_t se
     pinMode(dp, OUTPUT);
     digitalWrite(dp, LOW);
   }
-  if(colAn != 99){
-    pinMode(colAn, OUTPUT);
-    digitalWrite(colAn, LOW);
+  if(col != 99){
+    pinMode(col, OUTPUT);
+    digitalWrite(col, LOW);
   }
-  if(colCat != 99){
-    pinMode(colCat, OUTPUT);
-    digitalWrite(colCat, LOW);
-  }
-  
 }
 
-void setMode(boolean colon)
+void setMode(boolean actColon)
 {
-  colon = colon;
+  colon = actColon;
 }
 
 void setOutput(uint8_t high, uint8_t low)
@@ -195,6 +195,14 @@ void multiplex()
 
   mpxCount++;
   if(mpxCount == 4) mpxCount = 0;
+
+
+  if(colon){
+    runEvery(1000){
+      digitalWrite(col, digitalRead(col)^1);
+    }
+  }
+  else digitalWrite(col, LOW);
   
 }
 
