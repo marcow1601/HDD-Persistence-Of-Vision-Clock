@@ -9,7 +9,7 @@
  * 
 ******************************************************************/
 
-#include <Servo.h>          // Library to output 1-2ms pulses @ 50Hz
+//#include <ServoTimer2.h>    // Library to output 1-2ms pulses @ 50Hz; using Timer 2
 #include <avr/io.h>         // Definition of interrupt names
 #include <avr/interrupt.h>  // ISR interrupt service routine
 #include <Wire.h>           // I²C library
@@ -17,17 +17,17 @@
 #include <TimerOne.h>       // Timer based interrupt events
 #include <RTClib.h>         // Adafruit DS3231 RTC-library
 
-#include "sevenseg.h"       // external ressources for 7 segment display control
+#include "sevenseg.h"       // external resources for 7 segment display control
 
 //############################
 //######### Defines ##########
 //############################
 
-#define PIN_R       3
+#define PIN_R       4
 #define PIN_G       5
 #define PIN_B       6
 #define PIN_HALL    2       // This is the INT0 Pin of the ATMega8
-#define PIN_MOTOR   4
+//#define PIN_MOTOR   3
 
 #define DIVISIONS   256     // Number of segments the clock face is divided into
 #define OFFSET      (int)((DIVISIONS)*0.715f) // Required segment offset approx. 257°, empirical value/depends on hall placement
@@ -75,7 +75,7 @@ uint8_t sec_clr = cyan;     // Second hand
 //### Variables and Objects###
 //############################
 
-Servo motor;      // create servo object to control a servo
+ServoTimer2 motor;      // create servo object to control a servo
 RTC_DS3231 rtc;   // create RTC object
 DateTime now;     // DateTime instance returned by DS3231 RTC
 
@@ -120,8 +120,6 @@ void setup()
     segment[1][i].green = 0;
     segment[1][i].blue = 0;
   }
- 
-  Serial.begin(115200);
   
   pinMode(PIN_HALL, INPUT);
   
@@ -134,10 +132,10 @@ void setup()
   digitalWrite(PIN_B, LOW);
 
   // Attach the brushless speed controller on PIN_MOTOR to the servo object
-  motor.attach(PIN_MOTOR);    
+  //motor.attach(PIN_MOTOR);    
   
   // Initialize DS3231 RTC readout
-  rtc.begin();      // Initialize the rtc object
+  rtc.begin();  // Initialize the rtc object
   now = rtc.now();  // Request current time from DS3231 RTC
 
   // Prepare manual control of hardware timer 1
@@ -147,32 +145,34 @@ void setup()
   // Attach an external interrupt to the hall sensor pin triggered on a rising signal edge
   attachInterrupt(digitalPinToInterrupt(PIN_HALL), hallISR, RISING);
 
-  //init7seg(0,1,2,3,4,5,6,7,8,9,10,11,12,13);
-  //setMode(TIME);
+  init7seg(16,15,17,14, 9,8,0,12,10,1,11,7, 13);
+  //init7seg(16,15,17,14, 10,9,7,13,11,3,12,8, 99);
+  setMode(TIME);
+  setOutput((uint8_t)now.hour(), (uint8_t)now.minute());
+  
 }
 
 void loop()
 {
-  
   // Get current time from DS3231 RTC every second
   runEvery(1000)
   {
     now = rtc.now();
 
     makeVisible();
-    
-    //setOutput(now.hour, now.min);
+
+    setOutput((uint8_t)now.hour(), (uint8_t)now.minute());
   }
 
   runEvery(500){
     fillSegments(now);
   }
 
-  /*runEvery(5)
+  runEvery(2)
   {
     multiplex();
-  }*/
-  
+  }
+ 
 }
 
 
@@ -297,4 +297,3 @@ void makeVisible()
     segment[0][i] = segment[1][i];
   }
 }
-
