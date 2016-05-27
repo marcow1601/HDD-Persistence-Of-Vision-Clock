@@ -75,9 +75,11 @@ uint8_t sec_clr = cyan;     // Second hand
 //### Variables and Objects###
 //############################
 
-ServoTimer2 motor;      // create servo object to control a servo
+//ServoTimer2 motor;      // create servo object to control a servo
+
 RTC_DS3231 rtc;   // create RTC object
 DateTime now;     // DateTime instance returned by DS3231 RTC
+float temperature;
 
 struct LED
 {
@@ -137,6 +139,7 @@ void setup()
   // Initialize DS3231 RTC readout
   rtc.begin();  // Initialize the rtc object
   now = rtc.now();  // Request current time from DS3231 RTC
+  temperature = rtc.getTemperature(); // Request current temperature from DS3231 RTC
 
   // Prepare manual control of hardware timer 1
   Timer1.initialize();
@@ -145,8 +148,20 @@ void setup()
   // Attach an external interrupt to the hall sensor pin triggered on a rising signal edge
   attachInterrupt(digitalPinToInterrupt(PIN_HALL), hallISR, RISING);
 
+  /*
+   * Arduino Nano Pin connection overview
+   * Digital  0     f
+   *          1     c
+   *          7     dp
+   *          8     b
+   *          9     a
+   *         10     e 
+   *         11     g
+   *         12     d
+   *         13     colon 
+   */
+  
   init7seg(16,15,17,14, 9,8,0,12,10,1,11,7, 13);
-  //init7seg(16,15,17,14, 10,9,7,13,11,3,12,8, 99);
   setMode(TIME);
   setOutput((uint8_t)now.hour(), (uint8_t)now.minute());
   
@@ -158,10 +173,15 @@ void loop()
   runEvery(1000)
   {
     now = rtc.now();
+    
+    temperature = rtc.getTemperature();
+    uint8_t preDecimal = (uint8_t)temperature;
+    uint8_t decimal = (uint8_t)((temperature-preDecimal)*100);
 
     makeVisible();
 
-    setOutput((uint8_t)now.hour(), (uint8_t)now.minute());
+    if(getMode()) setOutput((uint8_t)now.hour(), (uint8_t)now.minute());
+    else setOutput(preDecimal, decimal);
   }
 
   runEvery(500){
@@ -172,12 +192,17 @@ void loop()
   {
     multiplex();
   }
+
+  runEvery(5000)
+  {
+    setMode(getMode()^1); // Toggle 7 segment mode between time and temperature
+  }
  
 }
 
 
 // Teach Brushless Speed Controller minimum and maximum throttle values
-void escCalibration()
+/*void escCalibration()
 {
   // Sweep ESC control one cycle Min-Max-Min on power-up
   for(uint8_t i = 20; i<= 180 ; i++)
@@ -193,7 +218,7 @@ void escCalibration()
   }
   // Wait for initialization sound to finish
   delay(5000);
-}
+}*/
 
 
 // This is the hall sensor triggered Interrupt Service Routine

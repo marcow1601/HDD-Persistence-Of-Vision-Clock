@@ -110,6 +110,10 @@ void setMode(boolean actColon)
 {
   colon = actColon;
 }
+boolean getMode()
+{
+  return colon;
+}
 
 void setOutput(uint8_t high, uint8_t low)
 {
@@ -153,7 +157,7 @@ void multiplex()
     digitalWrite(f, (code[digit2] >> 1) & 1);
     digitalWrite(g, (code[digit2]) & 1);
 
-    if(dp != 99) digitalWrite(dp, (code[digit2] >> 7) & 1);
+    if((dp != 99) && (!colon)) digitalWrite(dp, 1); // If in temperature mode, activate decimal point of digit 2
   }
   else if((mpxCount == 2) && (digit3 != 10)){
     digitalWrite(a, (code[digit3] >> 6) & 1);
