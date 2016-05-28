@@ -1,5 +1,7 @@
 # Analog HDD Persistence-of-Vision Clock
 
+![Analog HDD POV Clock](/presentation/pictogram.png?raw=true "Analog HDD POV Clock")
+
 ## General description
 
 ## Library dependencies
