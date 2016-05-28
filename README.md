@@ -4,6 +4,8 @@
 
 ## General description
 
+An HDD Persistence-of-Vision Clock is a device that makes the fast spinning platter of an old hard drive look like the face of an analog clock by multiplexing RGB LEDs located under the platter!
+
 ## Library dependencies
 
 * [TimerOne library](http://playground.arduino.cc/Code/Timer1) by [Paul Stoffregen](https://github.com/PaulStoffregen/TimerOne)
