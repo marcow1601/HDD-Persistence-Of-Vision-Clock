@@ -30,7 +30,7 @@
 //#define PIN_MOTOR   3
 
 #define DIVISIONS   256     // Number of segments the clock face is divided into
-#define OFFSET      (int)((DIVISIONS)*0.715f) // Required segment offset approx. 257°, empirical value/depends on hall placement
+#define OFFSET      (int)((DIVISIONS)*0.681f) // Required segment offset approx. 257°, empirical value/depends on hall placement
 
 
 // Color codes "RGB"
@@ -163,7 +163,7 @@ void setup()
    *         13     colon 
    */
   
-  init7seg(16,15,17,14, 9,8,0,12,10,1,11,7, 13);
+  init7seg(16,15,17,14, 9,8,0,12,10,1,11,7, 13);  
   setMode(TIME);
   setOutput((uint8_t)now.hour(), (uint8_t)now.minute());
   
@@ -207,7 +207,6 @@ void loop()
  
 }
 
-
 // Teach Brushless Speed Controller minimum and maximum throttle values
 /*void escCalibration()
 {
@@ -232,9 +231,9 @@ void loop()
 void hallISR()
 {
   revTime = micros() - lastRev;
-
+  
   // Ignore misleading interrupt triggering
-  if(revTime >= 5000){
+  if((revTime >= 5000)){
     Timer1.stop();
     
     lastRev = micros();
