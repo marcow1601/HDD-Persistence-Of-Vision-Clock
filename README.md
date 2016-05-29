@@ -65,6 +65,8 @@ And also lots of wires, resistors, transistors and such things...
 
 ### Step 10: Enjoy your own HDD POV Clock!!
 
+![Step 10: Enjoy](/presentation/step_10.jpg?raw=true "Step 08: Enjoy")
+
 
 ## Library dependencies
 
