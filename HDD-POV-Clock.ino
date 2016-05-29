@@ -99,6 +99,8 @@ struct LED
  */
 LED segment[2][(int)DIVISIONS];
 
+boolean modeToggleFlag = false;   // Stores whether on next check the 7 segment mode should be toggled between TIME and TEMP or not 
+
 
 // Global, interrupt accessible variables
 volatile uint16_t revTime = 0;
@@ -180,6 +182,11 @@ void loop()
 
     makeVisible();
 
+    if(modeToggleFlag){
+      setMode(getMode()^1); // Toggle 7 segment mode between time and temperature
+      modeToggleFlag = false;
+    }
+
     if(getMode()) setOutput((uint8_t)now.hour(), (uint8_t)now.minute());
     else setOutput(preDecimal, decimal);
   }
@@ -193,9 +200,9 @@ void loop()
     multiplex();
   }
 
-  runEvery(5000)
+  runEvery(10000)
   {
-    setMode(getMode()^1); // Toggle 7 segment mode between time and temperature
+    modeToggleFlag = true;
   }
  
 }
